@@ -21,6 +21,8 @@ add_executable(Proyecto1PG3
 
         src/position.cpp
         src/controllers.cpp
+        src/environment.cpp
+        src/game_rules.cpp
         src/console_ui.cpp
 
         include/circuit_escape/position.h
@@ -31,6 +33,8 @@ add_executable(Proyecto1PG3
         include/circuit_escape/scenario.h
         include/circuit_escape/observation.h
         include/circuit_escape/controllers.h
+        include/circuit_escape/environment.hpp
+        include/circuit_escape/game_rules.h
         include/circuit_escape/console_ui.h
 )
 
