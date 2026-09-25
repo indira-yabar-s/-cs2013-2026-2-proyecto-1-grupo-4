@@ -24,6 +24,7 @@ add_executable(Proyecto1PG3
         src/environment.cpp
         src/game_rules.cpp
         src/console_ui.cpp
+        src/game_application.cpp
 
         include/circuit_escape/position.h
         include/circuit_escape/cells.h
@@ -36,6 +37,7 @@ add_executable(Proyecto1PG3
         include/circuit_escape/environment.hpp
         include/circuit_escape/game_rules.h
         include/circuit_escape/console_ui.h
+        include/circuit_escape/game_application.h
 )
 
 target_include_directories(Proyecto1PG3 PRIVATE

@@ -1,17 +1,16 @@
 #ifndef PROYECTO1PG3_CONSOLE_UI_H
 #define PROYECTO1PG3_CONSOLE_UI_H
 
+#include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <variant>
 
 #include <ftxui/ftxui.hpp>
 
-#include "circuit_escape/cells.h"
-#include "circuit_escape/grid.h"
-#include "circuit_escape/observation.h"
-#include "circuit_escape/position.h"
+#include "circuit_escape/environment.hpp"
 
 namespace circuit_escape {
 
@@ -29,14 +28,15 @@ namespace circuit_escape {
         emoji,
         ascii
     };
+
     [[nodiscard]]
     RenderMode parseRenderMode(int argc, char* argv[]);
 
     class ConsoleUI {
     public:
-
         explicit ConsoleUI(
-            RenderMode mode = RenderMode::emoji
+            RenderMode mode = RenderMode::emoji,
+            std::size_t turnLimit = 0
         );
 
         [[nodiscard]]
@@ -46,16 +46,15 @@ namespace circuit_escape {
 
         [[nodiscard]]
         ftxui::Element render(
-            const Grid<Cell, 20, 30>& grid,
-            const Observation& observation,
-            std::string_view lastEvent = {}
+            const NavigationEnvironment<20, 30>& environment,
+            std::span<const NavigationEvent> recentEvents = {},
+            std::string_view message = {}
         ) const;
 
         [[nodiscard]]
         ftxui::Element help() const;
 
     private:
-
         [[nodiscard]]
         ftxui::Element coordinateCell(
             std::size_t value
@@ -81,9 +80,25 @@ namespace circuit_escape {
             const Grid<Cell, 20, 30>& grid
         ) const;
 
+        [[nodiscard]]
+        std::string eventText(
+            const NavigationEvent& event
+        ) const;
+
+        [[nodiscard]]
+        std::string eventsText(
+            std::span<const NavigationEvent> events
+        ) const;
+
+        [[nodiscard]]
+        std::string finishText(
+            const NavigationEnvironment<20, 30>& environment
+        ) const;
+
         RenderMode mode_;
+        std::size_t turnLimit_;
     };
 
-}
+} // namespace circuit_escape
 
 #endif

@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "circuit_escape/grid_algorithms.h"
+#include "circuit_escape/overloaded.h"
 
 namespace circuit_escape {
 
@@ -40,8 +41,12 @@ RenderMode parseRenderMode(int argc, char* argv[]) {
     return mode;
 }
 
-ConsoleUI::ConsoleUI(RenderMode mode)
-    : mode_(mode) {
+ConsoleUI::ConsoleUI(
+    RenderMode mode,
+    std::size_t turnLimit
+)
+    : mode_(mode),
+      turnLimit_(turnLimit) {
 }
 
 std::optional<UiCommand> ConsoleUI::translate(
@@ -110,11 +115,17 @@ std::optional<UiCommand> ConsoleUI::translate(
 }
 
 ftxui::Element ConsoleUI::render(
-    const Grid<Cell, 20, 30>& grid,
-    const Observation& observation,
-    std::string_view lastEvent
+    const NavigationEnvironment<20, 30>& environment,
+    std::span<const NavigationEvent> recentEvents,
+    std::string_view message
 ) const {
     using namespace ftxui;
+
+    const Observation observation =
+        environment.state();
+
+    const auto& grid =
+        environment.grid();
 
     Elements horizontalLabels;
 
@@ -183,9 +194,17 @@ ftxui::Element ConsoleUI::render(
         );
     }
 
-    const std::string status =
+    std::string status =
         "Turno " +
-        std::to_string(observation.turn) +
+        std::to_string(observation.turn);
+
+    if (turnLimit_ > 0) {
+        status +=
+            "/" +
+            std::to_string(turnLimit_);
+    }
+
+    status +=
         " | Energia " +
         std::to_string(observation.energy) +
         "/" +
@@ -197,11 +216,30 @@ ftxui::Element ConsoleUI::render(
         "/" +
         std::to_string(totalResources(grid));
 
+    std::string feedback;
+
+    if (!message.empty()) {
+        feedback = std::string(message);
+    } else if (!recentEvents.empty()) {
+        feedback = eventsText(recentEvents);
+    }
+
+    const std::string finish =
+        finishText(environment);
+
+    if (!finish.empty()) {
+        if (!feedback.empty()) {
+            feedback += " | ";
+        }
+
+        feedback += finish;
+    }
+
     std::string footer;
 
-    if (!lastEvent.empty()) {
+    if (!feedback.empty()) {
         footer =
-            std::string(lastEvent) +
+            feedback +
             " | ";
     }
 
@@ -226,7 +264,7 @@ ftxui::Element ConsoleUI::help() const {
         text("S / Flecha abajo     : mover abajo"),
         text("D / Flecha derecha   : mover derecha"),
         text("E                    : esperar"),
-        text("H                    : mostrar ayuda"),
+        text("H                    : mostrar u ocultar ayuda"),
         text("Q                    : salir")
     }) | border;
 }
@@ -290,9 +328,7 @@ std::string ConsoleUI::glyphFor(
 ) const {
     if (containsAgent) {
         if (mode_ == RenderMode::emoji) {
-            return std::string{
-                kAgentEmoji
-            };
+            return std::string{kAgentEmoji};
         }
 
         return std::string(
@@ -319,6 +355,115 @@ std::size_t ConsoleUI::totalResources(
     return countCellsOf<
         ResourceCell<int>
     >(grid);
+}
+
+std::string ConsoleUI::eventText(
+    const NavigationEvent& event
+) const {
+    return std::visit(
+        Overloaded{
+            [](const MovedEvent& e) {
+                return
+                    std::string("Movimiento ") +
+                    toString(e.from) +
+                    " -> " +
+                    toString(e.to);
+            },
+
+            [](const MovementRejectedEvent& e) {
+                return
+                    std::string("Movimiento rechazado: ") +
+                    toString(e.action);
+            },
+
+            [this](const ResourceCollectedEvent& e) {
+                const std::string symbol =
+                    mode_ == RenderMode::emoji
+                    ? "💎"
+                    : "R";
+
+                return
+                    symbol +
+                    " +" +
+                    std::to_string(e.points) +
+                    " en " +
+                    toString(e.at);
+            },
+
+            [](const EnergyChangedEvent& e) {
+                return
+                    std::string("Energia ") +
+                    std::to_string(e.previous) +
+                    " -> " +
+                    std::to_string(e.current);
+            },
+
+            [this](const TrapTriggeredEvent& e) {
+                const std::string symbol =
+                    mode_ == RenderMode::emoji
+                    ? "💥"
+                    : "T";
+
+                return
+                    symbol +
+                    " Trampa en " +
+                    toString(e.at);
+            },
+
+            [this](const GoalReachedEvent& e) {
+                const std::string symbol =
+                    mode_ == RenderMode::emoji
+                    ? "🏁"
+                    : "S";
+
+                return
+                    symbol +
+                    " Salida alcanzada en " +
+                    toString(e.at);
+            }
+        },
+        event
+    );
+}
+
+std::string ConsoleUI::eventsText(
+    std::span<const NavigationEvent> events
+) const {
+    std::string result;
+
+    for (const auto& event : events) {
+        if (!result.empty()) {
+            result += " · ";
+        }
+
+        result += eventText(event);
+    }
+
+    return result;
+}
+
+std::string ConsoleUI::finishText(
+    const NavigationEnvironment<20, 30>& environment
+) const {
+    if (!environment.isFinished()) {
+        return {};
+    }
+
+    const Observation observation =
+        environment.state();
+
+    if (
+        observation.agent == observation.goal &&
+        observation.energy > 0
+    ) {
+        return "Partida completada";
+    }
+
+    if (observation.energy == 0) {
+        return "Fin: sin energia";
+    }
+
+    return "Fin: limite de turnos";
 }
 
 } // namespace circuit_escape
