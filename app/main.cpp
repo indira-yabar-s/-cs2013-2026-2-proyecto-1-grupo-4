@@ -92,10 +92,12 @@ void runSimulation(NavigationEnvironment<20, 30>& env, int argc, char* argv[]) {
         controller = std::make_unique<PolicyController<HeuristicPolicy>>(HeuristicPolicy{});
     }
 
+    EndReason reason = EndReason::none;
     while (!env.isFinished()) {
         auto actions = env.availableActions();
         Action chosen = controller->selectAction(env.state(), actions);
         auto res = env.step(chosen);
+        reason = res.reason;
 
         std::cout << "Turno " << res.observation.turn
                   << " | Accion: " << toString(chosen)
@@ -104,10 +106,18 @@ void runSimulation(NavigationEnvironment<20, 30>& env, int argc, char* argv[]) {
                   << " | Pts: " << res.observation.score << '\n';
     }
 
-    std::cout << "\n=== Partida finalizada: " << (env.isFinished() ? "SI" : "NO")
-              << " | Turnos: " << env.state().turn
-              << " | Energia: " << env.state().energy
-              << " | Pts: " << env.state().score << " ===\n";
+    const auto fin = env.state();
+    const char* motivo = reason == EndReason::goalReached ? "llego a la salida"
+                       : reason == EndReason::noEnergy    ? "sin energia"
+                       : reason == EndReason::turnLimit   ? "limite de turnos"
+                                                          : "desconocido";
+    std::cout << "\n=== Partida completada: "
+              << (reason == EndReason::goalReached ? "SI" : "NO")
+              << " (" << motivo << ")"
+              << " | Turnos: " << fin.turn
+              << " | Energia: " << fin.energy << '/' << fin.maximumEnergy
+              << " | Recursos: " << fin.collectedResources
+              << " | Pts: " << fin.score << " ===\n";
 }
 
 } // namespace

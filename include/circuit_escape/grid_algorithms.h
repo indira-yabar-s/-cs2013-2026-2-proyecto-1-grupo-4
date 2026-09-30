@@ -7,11 +7,11 @@
 
 
 #pragma once
-// Templates de función propios sobre el tablero (enunciado §6.1).
+// Templates de función propios sobre el tablero.
 //
 // Todos reciben rangos mediante iteradores o trabajan sobre cualquier Grid,
 // por lo que el mismo algoritmo sirve para std::vector, std::list, std::deque
-// o el std::array interno del tablero, sin duplicar código (§9).
+// o el std::array interno del tablero, sin duplicar código.
 
 #include <algorithm>
 #include <cstddef>

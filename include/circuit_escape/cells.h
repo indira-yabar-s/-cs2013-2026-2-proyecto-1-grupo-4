@@ -6,9 +6,7 @@
 #define PROYECTO1PG3_CELLS_H
 
 
-#pragma once
-// Tipclass cells {
-//};os de celda del tablero (enunciado §5.5 y §5.7) y rasgos asociados (§6.3).
+// Tipos de celda del tablero y rasgos asociados (CellTraits).
 //
 // Las celdas NO imprimen ni leen de consola: solo describen datos. Los costos
 // de energía y las recompensas efectivas los decide GameRules en el entorno;
@@ -99,7 +97,7 @@ struct CellTraits<ResourceCell<Reward>> {
     static constexpr bool consumable  = true;
 };
 
-// Atajos estilo _v de <type_traits> (Semana 4: type traits).
+// Atajos estilo _v de <type_traits>.
 template <typename CellType>
 inline constexpr bool is_traversable_v = CellTraits<std::remove_cvref_t<CellType>>::traversable;
 
@@ -174,7 +172,7 @@ inline bool markSpent(Cell& cell) {
 }
 
 // ---------------------------------------------------------------------------
-// Representación textual (convención visual del enunciado §5.8).
+// Representación textual de cada celda (emoji y ASCII).
 // Son datos puros: la capa FTXUI los usará sin que el motor dependa de ella.
 // Un recurso o batería gastados se muestran como espacio libre.
 // ---------------------------------------------------------------------------

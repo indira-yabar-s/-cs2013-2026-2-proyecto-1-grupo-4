@@ -6,7 +6,7 @@
 #define PROYECTO1PG3_SCENARIO_H
 
 #pragma once
-// Carga de escenarios desde una colección de cadenas (enunciado §5.1).
+// Carga de escenarios desde una colección de cadenas.
 //
 // Formato: una línea por fila, un carácter por celda, con la convención ASCII
 //   .  espacio libre     #  muro          ~  terreno elevado

@@ -14,9 +14,7 @@ namespace {
 
 constexpr int CELL_WIDTH = 2;
 
-// Digitos de ancho completo (U+FF10..U+FF19): un solo punto de codigo con ancho
-// visual de 2 columnas. Se usan en vez de los emojis keycap (0️⃣), que son
-// secuencias de 3 puntos de codigo y la terminal de Windows no los combina.
+// Dígitos de ancho completo: ocupan 2 columnas y se ven bien en la terminal de Windows.
 const std::array<std::string, 10> KEYCAP_DIGITS{
     "０", "１", "２", "３", "４",
     "５", "６", "７", "８", "９"
