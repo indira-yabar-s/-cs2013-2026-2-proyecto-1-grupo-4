@@ -46,6 +46,9 @@ target_link_libraries(circuit_escape_ui PUBLIC
 add_executable(Proyecto1PG3
         app/main.cpp
 )
+if (MINGW)
+    target_link_options(Proyecto1PG3 PRIVATE -static)
+endif()
 
 target_link_libraries(Proyecto1PG3 PRIVATE
         circuit_escape_ui
