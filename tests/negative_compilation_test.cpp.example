@@ -1,0 +1,52 @@
+// ==============================================================================
+// PRUEBA NEGATIVA DE COMPILACIÓN (Requisito §8 de la especificación)
+// ==============================================================================
+// Este archivo documenta el fallo en tiempo de compilación cuando un tipo NO cumple
+// con el concept `NavigationPolicy` definido en `include/circuit_escape/controllers.h`.
+//
+// El concept exige:
+//   template <typename Policy>
+//   concept NavigationPolicy = requires(
+//       Policy& policy,
+//       const Observation& observation,
+//       std::span<const Action> actions
+//   ) {
+//       { policy.selectAction(observation, actions) } -> std::same_as<Action>;
+//   };
+//
+// Al intentar instanciar `PolicyController<InvalidPolicy>`, el compilador (GCC/Clang/MSVC)
+// rechaza la plantilla y produce un mensaje de diagnóstico detallado.
+// ==============================================================================
+
+#include "circuit_escape/controllers.h"
+
+using namespace circuit_escape;
+
+// Caso 1: Política inválida (la firma devuelve int en lugar de Action, o falta un parámetro)
+struct InvalidPolicyReturnsInt {
+    int selectAction(const Observation&, std::span<const Action>) {
+        return 0; // Error: debe retornar Action
+    }
+};
+
+// Caso 2: Estructura que no define selectAction
+struct EmptyInvalidPolicy {};
+
+#if 0
+// Descomentar este bloque para verificar el diagnóstico del compilador:
+
+void triggerCompileError() {
+    // DIAGNÓSTICO ESPERADO EN GCC 16 (C++20):
+    // error: template constraint failure for 'template<circuit_escape::NavigationPolicy Policy> class circuit_escape::PolicyController'
+    // note: constraints not satisfied
+    // note: in requirements with 'Policy& policy', 'const circuit_escape::Observation& observation', 'std::span<const circuit_escape::Action> actions'
+    // note: the required expression '{policy.selectAction(observation, actions)} -> same_as<circuit_escape::Action>' is not satisfied
+    //
+    PolicyController<InvalidPolicyReturnsInt> controller1{InvalidPolicyReturnsInt{}};
+
+    // DIAGNÓSTICO ESPERADO PARA EmptyInvalidPolicy:
+    // error: 'struct EmptyInvalidPolicy' has no member named 'selectAction'
+    PolicyController<EmptyInvalidPolicy> controller2{EmptyInvalidPolicy{}};
+}
+
+#endif
