@@ -7,7 +7,7 @@
 
 
 #pragma once
-// Tablero genérico de tamaño fijo (enunciado §5.1, §5.7 y §6.2).
+// Tablero genérico de tamaño fijo.
 //
 //   CellType : parámetro de tipo  (la celda)
 //   Rows     : parámetro no-tipo  (filas)

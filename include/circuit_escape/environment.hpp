@@ -12,6 +12,7 @@
 #include "circuit_escape/cells.h"
 #include "circuit_escape/game_rules.h"
 #include "circuit_escape/grid.h"
+#include "circuit_escape/grid_algorithms.h"
 #include "circuit_escape/observation.h"
 #include "circuit_escape/position.h"
 
@@ -86,8 +87,9 @@ public:
         validateConfiguration();
     }
 
-    void reset(std::uint32_t seed) {
-        (void)seed;
+    // El entorno no usa azar: la semilla solo la usan los controladores.
+    // Se recibe para mantener la firma pedida (reset(seed)).
+    void reset(std::uint32_t /*seed*/) {
         grid_ = initialGrid_;
         agent_ = start_;
         energy_ = maximumEnergy_;
@@ -177,18 +179,11 @@ private:
             throw std::invalid_argument("La posicion inicial debe ser transitable y pertenecer al tablero");
         }
 
-        std::size_t exits = 0;
-        for (const Cell& cell : grid_) {
-            if (std::holds_alternative<Exit>(cell)) ++exits;
-        }
-        if (exits != 1) {
+        // Debe existir exactamente una salida (usa los templates de grid_algorithms.h).
+        if (countCellsOf<Exit>(grid_) != 1) {
             throw std::invalid_argument("El tablero debe contener exactamente una salida");
         }
-
-        for (std::size_t index = 0; index < grid_type::size(); ++index) {
-            const Position position = grid_type::positionOf(index);
-            if (std::holds_alternative<Exit>(grid_.at(position))) goal_ = position;
-        }
+        goal_ = *findFirst<Exit>(grid_);
     }
 
     void changeEnergy(int amount, std::vector<NavigationEvent>& events) {
@@ -200,21 +195,27 @@ private:
         }
     }
 
+    // Efecto de la celda destino. std::get_if devuelve un puntero a la celda
+    // si es de ese tipo, o nullptr si no lo es.
     void applyCellEffect(std::vector<NavigationEvent>& events) {
         Cell& cell = grid_.at(agent_);
 
-        if (isConsumable(cell) && markSpent(cell)) {
-            if (std::holds_alternative<ResourceCell<int>>(cell)) {
+        if (auto* recurso = std::get_if<ResourceCell<int>>(&cell)) {
+            // Un recurso solo se recoge la primera vez.
+            if (!recurso->collected) {
+                recurso->collected = true;
                 score_ += rules_.resourcePoints;
                 ++collectedResources_;
                 events.emplace_back(ResourceCollectedEvent{agent_, rules_.resourcePoints});
-            } else if (std::holds_alternative<Battery>(cell)) {
+            }
+        } else if (auto* bateria = std::get_if<Battery>(&cell)) {
+            // Una bateria solo recarga la primera vez.
+            if (!bateria->consumed) {
+                bateria->consumed = true;
                 changeEnergy(rules_.batteryRecharge, events);
             }
-            return;
-        }
-
-        if (std::holds_alternative<Trap>(cell)) {
+        } else if (std::holds_alternative<Trap>(cell)) {
+            // La trampa se aplica cada vez que se entra.
             score_ -= rules_.trapScorePenalty;
             events.emplace_back(TrapTriggeredEvent{agent_});
             changeEnergy(-rules_.trapEnergyPenalty, events);

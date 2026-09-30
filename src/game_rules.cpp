@@ -5,13 +5,42 @@
 namespace circuit_escape {
 
 GameRules rulesFor(Difficulty difficulty) {
+    // Valores comunes a los tres perfiles.
+    GameRules rules;
+    rules.entryCost = 1;
+    rules.waitCost = 1;
+    rules.invalidMoveCost = 1;
+
     switch (difficulty) {
         case Difficulty::easy:
-            return {80, 240, 1, 2, 1, 1, 15, 5, 1, 0};
+            rules.initialEnergy = 80;
+            rules.turnLimit = 240;
+            rules.roughTerrainCost = 2;
+            rules.resourcePoints = 15;
+            rules.batteryRecharge = 5;
+            rules.trapEnergyPenalty = 1;
+            rules.trapScorePenalty = 0;
+            return rules;
+
         case Difficulty::standard:
-            return {60, 180, 1, 2, 1, 1, 10, 3, 2, 1};
+            rules.initialEnergy = 60;
+            rules.turnLimit = 180;
+            rules.roughTerrainCost = 2;
+            rules.resourcePoints = 10;
+            rules.batteryRecharge = 3;
+            rules.trapEnergyPenalty = 2;
+            rules.trapScorePenalty = 1;
+            return rules;
+
         case Difficulty::hard:
-            return {40, 140, 1, 3, 1, 1, 8, 2, 3, 2};
+            rules.initialEnergy = 40;
+            rules.turnLimit = 140;
+            rules.roughTerrainCost = 3;
+            rules.resourcePoints = 8;
+            rules.batteryRecharge = 2;
+            rules.trapEnergyPenalty = 3;
+            rules.trapScorePenalty = 2;
+            return rules;
     }
 
     throw std::invalid_argument("Dificultad no valida");

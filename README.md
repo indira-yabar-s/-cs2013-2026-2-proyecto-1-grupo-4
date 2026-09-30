@@ -4,11 +4,14 @@
 **Grupo 4**
 
 ### Integrantes
-* **Jean Franco** (`jeanf@utec.edu.pe`) - Integración y Pruebas
-* **Oriana Manrique** (`oriana.manrique@utec.edu.pe`) - Tablero y Dominio
-* **Indira Yabar** (`indira.yabar@utec.edu.pe`) - Reglas y Entorno
-* **Rodolfo Huaroc** (`rodolfo.huaroc@utec.edu.pe`) - Controladores
-* **Pedro Chavez** (`pedro.chavez@utec.edu.pe`) - Interfaz (FTXUI)
+
+| Integrante | Código UTEC | Usuario GitHub       | Correo | Área |
+| :--- | :--- |:---------------------| :--- | :--- |
+| Jean Franco | 202110399 | alpawino             | `jeanf@utec.edu.pe` | Integración y Pruebas |
+| Oriana Manrique | 202320149 | orianamanriqueromero | `oriana.manrique@utec.edu.pe` | Tablero y Dominio |
+| Indira Yabar | 202520029 | `indira-yabar-s`     | `indira.yabar@utec.edu.pe` | Reglas y Entorno |
+| Rodolfo Huaroc | 202220307 | rodolfoextremo69     | `rodolfo.huaroc@utec.edu.pe` | Controladores |
+| Pedro Chavez | 202510334 | `pedrochavezoscanoa` | `pedro.chavez@utec.edu.pe` | Interfaz (FTXUI) |
 
 ---
 

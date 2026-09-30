@@ -7,7 +7,7 @@
 
 
 #pragma once
-// Clase variádica Overloaded (enunciado §6.4): combina varias lambdas en un
+// Clase variádica Overloaded: combina varias lambdas en un
 // solo objeto invocable para usarlo con std::visit.
 
 namespace circuit_escape {
