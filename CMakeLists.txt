@@ -81,3 +81,8 @@ add_test(NAME controllers_test COMMAND controllers_test)
 add_executable(maze_test tests/maze_test.cpp)
 target_link_libraries(maze_test PRIVATE circuit_escape_core)
 add_test(NAME maze_test COMMAND maze_test)
+
+# Proyecto 2 - Modulo de Busquedas
+add_executable(busquedas_test tests/busquedas_test.cpp)
+target_link_libraries(busquedas_test PRIVATE circuit_escape_core)
+add_test(NAME busquedas_test COMMAND busquedas_test)
