@@ -25,13 +25,27 @@ El motor se organiza en 4 componentes desacoplados:
 * `findFirst<CellAlternative>`: Busca la primera posición de una celda específica retornando `std::optional<Position>`.
 * `countCellsOf<Ts...>`: Cuenta celdas que contienen cualquiera de los tipos dados mediante template variádico y fold expression.
 
-### 2.2 Templates de Clases y Parámetros No-Tipo (`include/circuit_escape/grid.h`)
-* `Grid<CellType, Rows, Columns>`:
+### 2.2 Templates de Clases (`include/circuit_escape/grid.h`, `graph.h`)
+* `Grid<CellType>` (tablero de **tamaño variable**):
   * Parámetro de tipo: `CellType`.
-  * Parámetros no-tipo (NTTP): `Rows` y `Columns`.
-  * Almacenamiento continuo en `std::array<CellType, Rows * Columns>`.
-  * Validación en compilación: `requires (Rows > 0 && Columns > 0)`.
+  * Filas y columnas se reciben en el constructor (`Grid<Cell> g(21, 31)`), así el mismo tipo sirve para mapas de cualquier tamaño (cargados de `.txt` o generados).
+  * Almacenamiento contiguo en `std::vector<CellType>` en orden por filas (`índice = fila * columnas + columna`).
+  * Validación en ejecución: dimensiones 0 lanzan `std::invalid_argument`.
   * Métodos `at()` y `operator()` con validación de límites (`std::out_of_range`).
+* `Graph<Weight>`: grafo no dirigido ponderado (lista de aristas + lista de adyacencia). `Weight` está restringido por el concept `EdgeWeight` (`std::totally_ordered` y `std::copyable`).
+
+### 2.2.1 Generación de laberintos: Grafo + Disjoint Set + Kruskal
+* `DisjointSet` (`disjoint_set.h/.cpp`): Union-Find con unión por rango y compresión de caminos (`find`/`unite` en O(α(n))).
+* `kruskal(graph)` (`kruskal.h`): ordena las aristas por peso y acepta una arista solo si `DisjointSet::unite` devuelve `true` (no forma ciclo). O(E log E).
+* `generateMaze(rows, columns, seed, options)` (`maze_generator.h/.cpp`):
+  1. Las celdas impares `(2i+1, 2j+1)` son salas (vértices); todo lo demás es muro.
+  2. Cada par de salas vecinas es una arista con peso aleatorio (`std::mt19937` con semilla).
+  3. Kruskal elige el árbol de expansión mínima; se abre el muro entre las salas de cada arista del árbol → laberinto perfecto (conexo y sin ciclos).
+  4. `MazeOptions::extraPassageChance` abre algunos muros extra para crear rutas alternativas, y se colocan recursos, baterías, trampas y terreno elevado.
+
+### 2.2.2 Mapas en archivos `.txt` (`scenario.h/.cpp`)
+* `loadScenarioFile(path)` / `scenarioFromStream(istream)`: el tamaño se deduce del archivo (filas = líneas, columnas = largo de la primera línea; todas deben medir igual). Se ignoran líneas vacías, comentarios `;` y `\r` de Windows.
+* `saveScenarioFile(path, scenario)` / `writeScenario(ostream, scenario)`: escriben el mismo formato ASCII (con `@` en el inicio), así un mapa guardado se vuelve a cargar idéntico.
 
 ### 2.3 Especialización Total y Parcial (`include/circuit_escape/cells.h`)
 Definición del rasgo `CellTraits<CellType>`:
@@ -59,7 +73,8 @@ Definición del rasgo `CellTraits<CellType>`:
 
 ## 3. Uso Justificado de la Biblioteca Estándar
 
-* `std::array`: Tablero contiguo de tamaño fijo conocido en compilación sin sobrecosto de memoria dinámica.
+* `std::vector`: Tablero contiguo de tamaño variable (`Grid<CellType>`), también usado en el grafo y el Disjoint Set.
+* `<filesystem>` y `<fstream>`: guardado y carga de mapas `.txt`.
 * `std::vector`: Registro dinámico de eventos en cada turno y lista de acciones legales.
 * `std::variant` y `std::visit`: Modela celdas (`Cell`) y eventos (`NavigationEvent`) de forma segura sin punteros crudos.
 * `std::optional`: Indica explícitamente búsquedas o conversiones que pueden no tener valor (ej. `neighbor`, `findFirst`, `translate`).

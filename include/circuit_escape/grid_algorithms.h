@@ -41,11 +41,10 @@ template <std::input_iterator It, std::sentinel_for<It> Sentinel, typename Predi
 // 2) Copia hacia `out` las posiciones de [first, last) cuya celda en el
 //    tablero es transitable. Rango por iteradores + iterador de salida:
 //    sirve con std::vector<Position>, std::list<Position>, std::back_inserter...
-template <typename CellType, std::size_t Rows, std::size_t Columns,
-          std::input_iterator It, std::sentinel_for<It> Sentinel,
+template <typename CellType, std::input_iterator It, std::sentinel_for<It> Sentinel,
           std::output_iterator<Position> Out>
     requires std::same_as<std::iter_value_t<It>, Position>
-Out copyTraversablePositions(const Grid<CellType, Rows, Columns>& grid,
+Out copyTraversablePositions(const Grid<CellType>& grid,
                              It first, Sentinel last, Out out) {
     for (; first != last; ++first) {
         const Position p = *first;
@@ -58,8 +57,8 @@ Out copyTraversablePositions(const Grid<CellType, Rows, Columns>& grid,
 
 // 3) Primera posición (en orden por filas) cuya celda contiene la alternativa
 //    CellT. std::optional expresa que la búsqueda puede fallar.
-template <CellAlternative CellT, std::size_t Rows, std::size_t Columns>
-[[nodiscard]] std::optional<Position> findFirst(const Grid<Cell, Rows, Columns>& grid) {
+template <CellAlternative CellT>
+[[nodiscard]] std::optional<Position> findFirst(const Grid<Cell>& grid) {
     const auto it = std::find_if(grid.begin(), grid.end(), [](const Cell& cell) {
         return std::holds_alternative<CellT>(cell);
     });
@@ -69,8 +68,8 @@ template <CellAlternative CellT, std::size_t Rows, std::size_t Columns>
 
 // 4) Cuenta las celdas del tablero que contienen alguno de los tipos Ts...
 //    (paquete variádico reenviado a holdsAnyOf, que usa una fold expression).
-template <CellAlternative... Ts, std::size_t Rows, std::size_t Columns>
-[[nodiscard]] std::size_t countCellsOf(const Grid<Cell, Rows, Columns>& grid) {
+template <CellAlternative... Ts>
+[[nodiscard]] std::size_t countCellsOf(const Grid<Cell>& grid) {
     return countMatching(grid.begin(), grid.end(),
                          [](const Cell& cell) { return holdsAnyOf<Ts...>(cell); });
 }

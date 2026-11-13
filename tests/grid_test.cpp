@@ -14,7 +14,7 @@
 using namespace circuit_escape;
 
 void testGridDimensionsAndLimits() {
-    Grid<Cell, 20, 30> grid;
+    Grid<Cell> grid(20, 30);
     assert(grid.rows() == 20);
     assert(grid.columns() == 30);
     assert(grid.size() == 600);
@@ -32,8 +32,33 @@ void testGridDimensionsAndLimits() {
     assert(!grid.contains({99, 99}));
 }
 
+void testGridVariableSize() {
+    // El mismo tipo Grid<Cell> admite tamaños distintos en ejecución.
+    Grid<Cell> small(3, 5, Cell{Wall{}});
+    Grid<Cell> big(41, 61);
+    assert(small.rows() == 3 && small.columns() == 5 && small.size() == 15);
+    assert(big.rows() == 41 && big.columns() == 61 && big.size() == 41 * 61);
+    assert(std::holds_alternative<Wall>(small.at({2, 4})));
+    assert(!small.contains({3, 0}));
+    assert(big.contains({40, 60}));
+    assert(!(small == big));
+
+    // Conversión índice <-> posición depende de las columnas reales.
+    assert((small.positionAt(7) == Position{1, 2}));
+    assert(small.indexOf({1, 2}) == 7);
+
+    // Dimensiones 0 no permitidas.
+    bool caught = false;
+    try {
+        Grid<int> invalid(0, 4);
+    } catch (const std::invalid_argument&) {
+        caught = true;
+    }
+    assert(caught);
+}
+
 void testGridAccessAndExceptions() {
-    Grid<Cell, 3, 4> grid;
+    Grid<Cell> grid(3, 4);
     grid.at({0, 0}) = Wall{};
     grid.at({2, 3}) = Exit{};
 
@@ -67,7 +92,7 @@ void testGridAccessAndExceptions() {
 }
 
 void testGridIteratorsRowMajor() {
-    Grid<int, 2, 3> grid;
+    Grid<int> grid(2, 3);
     int value = 0;
     for (std::size_t r = 0; r < 2; ++r) {
         for (std::size_t c = 0; c < 3; ++c) {
@@ -80,7 +105,7 @@ void testGridIteratorsRowMajor() {
     std::size_t count = 0;
     for (auto it = grid.begin(); it != grid.end(); ++it) {
         assert(*it == expected);
-        assert(grid.positionOf(it) == (Grid<int, 2, 3>::positionOf(expected)));
+        assert(grid.positionOf(it) == grid.positionAt(static_cast<std::size_t>(expected)));
         ++expected;
         ++count;
     }
@@ -99,7 +124,7 @@ void testAlgorithmsGenericContainersAndEmptyRanges() {
     assert(countMatching(emptyVec.begin(), emptyVec.end(), isEven) == 0);
 
     // 2) copyTraversablePositions con std::vector y std::list
-    Grid<Cell, 2, 2> board;
+    Grid<Cell> board(2, 2);
     board.at({0, 0}) = Empty{};
     board.at({0, 1}) = Wall{};
     board.at({1, 0}) = RoughTerrain{2};
@@ -120,7 +145,7 @@ void testAlgorithmsGenericContainersAndEmptyRanges() {
     assert(copiedFromEmpty.empty());
 
     // 3) findFirst
-    Grid<Cell, 2, 2> searchGrid;
+    Grid<Cell> searchGrid(2, 2);
     searchGrid.at({0, 0}) = Empty{};
     searchGrid.at({1, 1}) = Exit{};
 
@@ -138,6 +163,7 @@ void testAlgorithmsGenericContainersAndEmptyRanges() {
 
 int main() {
     testGridDimensionsAndLimits();
+    testGridVariableSize();
     testGridAccessAndExceptions();
     testGridIteratorsRowMajor();
     testAlgorithmsGenericContainersAndEmptyRanges();

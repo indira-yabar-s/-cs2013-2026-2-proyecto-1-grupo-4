@@ -46,7 +46,7 @@ namespace circuit_escape {
 
         [[nodiscard]]
         ftxui::Element render(
-            const NavigationEnvironment<20, 30>& environment,
+            const NavigationEnvironment& environment,
             std::span<const NavigationEvent> recentEvents = {},
             std::string_view message = {}
         ) const;
@@ -77,7 +77,7 @@ namespace circuit_escape {
 
         [[nodiscard]]
         std::size_t totalResources(
-            const Grid<Cell, 20, 30>& grid
+            const Grid<Cell>& grid
         ) const;
 
         [[nodiscard]]
@@ -92,7 +92,7 @@ namespace circuit_escape {
 
         [[nodiscard]]
         std::string finishText(
-            const NavigationEnvironment<20, 30>& environment
+            const NavigationEnvironment& environment
         ) const;
 
         RenderMode mode_;
