@@ -11,14 +11,14 @@ namespace circuit_escape {
     class GameApplication {
     public:
         GameApplication(
-            NavigationEnvironment<20, 30>& environment,
+            NavigationEnvironment& environment,
             ConsoleUI& ui
         );
 
         void run();
 
     private:
-        NavigationEnvironment<20, 30>& environment_;
+        NavigationEnvironment& environment_;
         ConsoleUI& ui_;
         std::vector<NavigationEvent> recentEvents_;
         std::string message_;

@@ -7,80 +7,80 @@
 
 
 #pragma once
-// Tablero genérico de tamaño fijo.
+// Tablero genérico de tamaño variable (definido en tiempo de ejecución).
 //
-//   CellType : parámetro de tipo  (la celda)
-//   Rows     : parámetro no-tipo  (filas)
-//   Columns  : parámetro no-tipo  (columnas)
+//   CellType : parámetro de tipo (la celda)
+//   rows / columns : se reciben en el constructor, así el mismo tipo
+//                    Grid<Cell> sirve para mapas de 20x30, 7x9, 41x61...
 //
-// Almacenamiento contiguo en std::array en orden por filas:
-//   índice = fila * Columns + columna
+// Almacenamiento contiguo en std::vector en orden por filas:
+//   índice = fila * columns + columna
 // Por eso los iteradores recorren de izquierda a derecha y de arriba hacia abajo.
 // Grid no conoce turnos, energía, controladores ni reglas de victoria.
 
-#include <array>
 #include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "circuit_escape/position.h"
 
 namespace circuit_escape {
 
-template <typename CellType, std::size_t Rows, std::size_t Columns>
-    requires (Rows > 0 && Columns > 0)
+template <typename CellType>
 class Grid {
-    static_assert(Rows > 0 && Columns > 0, "Grid requiere al menos una fila y una columna");
-
-    using storage_type = std::array<CellType, Rows * Columns>;
+    using storage_type = std::vector<CellType>;
 
 public:
     using value_type      = CellType;
-    using reference       = CellType&;
-    using const_reference = const CellType&;
+    using reference       = typename storage_type::reference;
+    using const_reference = typename storage_type::const_reference;
     using size_type       = std::size_t;
     using iterator        = typename storage_type::iterator;
     using const_iterator  = typename storage_type::const_iterator;
 
     // ---- construcción -----------------------------------------------------
-    constexpr Grid() = default;
+    // Crea un tablero rows x columns relleno con `fill` (por defecto CellType{}).
+    // Lanza std::invalid_argument si alguna dimensión es 0.
+    Grid(size_type rows, size_type columns, const CellType& fill = CellType{})
+        : rows_(validated(rows, "filas")),
+          columns_(validated(columns, "columnas")),
+          cells_(rows_ * columns_, fill) {}
 
-    // Rellena todo el tablero con una misma celda.
-    constexpr explicit Grid(const CellType& fill) { cells_.fill(fill); }
-
-    // Copia, movimiento y destrucción por defecto: std::array ya administra
+    // Copia, movimiento y destrucción por defecto: std::vector ya administra
     // sus elementos (regla del cero / RAII).
 
-    // ---- dimensiones (conocidas en compilación) ---------------------------
-    [[nodiscard]] static constexpr size_type rows() noexcept { return Rows; }
-    [[nodiscard]] static constexpr size_type columns() noexcept { return Columns; }
-    [[nodiscard]] static constexpr size_type size() noexcept { return Rows * Columns; }
+    // ---- dimensiones (conocidas en ejecución) -----------------------------
+    [[nodiscard]] size_type rows() const noexcept { return rows_; }
+    [[nodiscard]] size_type columns() const noexcept { return columns_; }
+    [[nodiscard]] size_type size() const noexcept { return cells_.size(); }
 
     // ---- consulta de límites ---------------------------------------------
-    [[nodiscard]] constexpr bool contains(Position position) const noexcept {
-        return position.row < Rows && position.column < Columns;
+    [[nodiscard]] bool contains(Position position) const noexcept {
+        return position.row < rows_ && position.column < columns_;
     }
 
     // ---- acceso validado (lanza std::out_of_range) ------------------------
-    CellType& at(Position position) { return cells_[checkedIndex(position)]; }
-    const CellType& at(Position position) const { return cells_[checkedIndex(position)]; }
+    reference at(Position position) { return cells_[checkedIndex(position)]; }
+    const_reference at(Position position) const { return cells_[checkedIndex(position)]; }
 
     // operator(): acceso equivalente por (fila, columna), también validado.
-    CellType& operator()(size_type row, size_type column) { return at({row, column}); }
-    const CellType& operator()(size_type row, size_type column) const { return at({row, column}); }
+    reference operator()(size_type row, size_type column) { return at({row, column}); }
+    const_reference operator()(size_type row, size_type column) const { return at({row, column}); }
 
     // ---- conversión índice <-> posición (útil con algoritmos) -------------
-    [[nodiscard]] static constexpr Position positionOf(size_type index) noexcept {
-        return Position{index / Columns, index % Columns};
+    [[nodiscard]] Position positionAt(size_type index) const noexcept {
+        return Position{index / columns_, index % columns_};
     }
 
-    [[nodiscard]] static constexpr size_type indexOf(Position position) noexcept {
-        return position.row * Columns + position.column;
+    [[nodiscard]] size_type indexOf(Position position) const noexcept {
+        return position.row * columns_ + position.column;
     }
 
     // Posición de la celda apuntada por un iterador de este tablero.
     [[nodiscard]] Position positionOf(const_iterator it) const noexcept {
-        return positionOf(static_cast<size_type>(it - cells_.cbegin()));
+        return positionAt(static_cast<size_type>(it - cells_.cbegin()));
     }
 
     // ---- iteradores (orden por filas) -------------------------------------
@@ -94,16 +94,26 @@ public:
     friend bool operator==(const Grid&, const Grid&) = default;
 
 private:
+    static size_type validated(size_type value, const char* what) {
+        if (value == 0) {
+            throw std::invalid_argument(std::string("Grid: el número de ") + what +
+                                        " debe ser mayor que 0");
+        }
+        return value;
+    }
+
     size_type checkedIndex(Position position) const {
         if (!contains(position)) {
             throw std::out_of_range("Grid::at: posición " + toString(position) +
-                                    " fuera de un tablero de " + std::to_string(Rows) +
-                                    " x " + std::to_string(Columns));
+                                    " fuera de un tablero de " + std::to_string(rows_) +
+                                    " x " + std::to_string(columns_));
         }
         return indexOf(position);
     }
 
-    storage_type cells_{};
+    size_type rows_;
+    size_type columns_;
+    storage_type cells_;
 };
 
 }  // namespace circuit_escape

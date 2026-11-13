@@ -19,39 +19,39 @@ bool hasEvent(const std::vector<NavigationEvent>& events) {
 }
 
 void testConstructorPreconditions() {
-    Grid<Cell, 2, 2> validBoard;
+    Grid<Cell> validBoard(2, 2);
     validBoard.at({0, 0}) = Empty{};
     validBoard.at({1, 1}) = Exit{};
 
     // Válido
-    NavigationEnvironment<2, 2> envValid{validBoard, {0, 0}, 10, 5};
+    NavigationEnvironment envValid{validBoard, {0, 0}, 10, 5};
     assert(envValid.state().energy == 10);
 
     // Inicio inválido (fuera de límites)
     bool caught = false;
     try {
-        NavigationEnvironment<2, 2> badEnv(validBoard, {2, 0}, 10, 5);
+        NavigationEnvironment badEnv(validBoard, {2, 0}, 10, 5);
     } catch (const std::invalid_argument&) {
         caught = true;
     }
     assert(caught);
 
     // Inicio sobre muro
-    Grid<Cell, 2, 2> wallBoard = validBoard;
+    Grid<Cell> wallBoard = validBoard;
     wallBoard.at({0, 0}) = Wall{};
     caught = false;
     try {
-        NavigationEnvironment<2, 2> badEnv(wallBoard, {0, 0}, 10, 5);
+        NavigationEnvironment badEnv(wallBoard, {0, 0}, 10, 5);
     } catch (const std::invalid_argument&) {
         caught = true;
     }
     assert(caught);
 
     // Sin salida
-    Grid<Cell, 2, 2> noExitBoard;
+    Grid<Cell> noExitBoard(2, 2);
     caught = false;
     try {
-        NavigationEnvironment<2, 2> badEnv(noExitBoard, {0, 0}, 10, 5);
+        NavigationEnvironment badEnv(noExitBoard, {0, 0}, 10, 5);
     } catch (const std::invalid_argument&) {
         caught = true;
     }
@@ -59,11 +59,11 @@ void testConstructorPreconditions() {
 }
 
 void testMovementAndRejectedMoves() {
-    Grid<Cell, 3, 3> board;
+    Grid<Cell> board(3, 3);
     board.at({0, 1}) = Wall{};
     board.at({2, 2}) = Exit{};
 
-    NavigationEnvironment<3, 3> env{board, {0, 0}, 10, 15};
+    NavigationEnvironment env{board, {0, 0}, 10, 15};
 
     // 1) Movimiento válido hacia abajo
     auto res1 = env.step(Action::down);
@@ -94,12 +94,12 @@ void testMovementAndRejectedMoves() {
 }
 
 void testRoughTerrainAndAvailableActions() {
-    Grid<Cell, 2, 2> board;
+    Grid<Cell> board(2, 2);
     board.at({0, 1}) = RoughTerrain{2};
     board.at({1, 0}) = Wall{};
     board.at({1, 1}) = Exit{};
 
-    NavigationEnvironment<2, 2> env{board, {0, 0}, 10, 10};
+    NavigationEnvironment env{board, {0, 0}, 10, 10};
 
     // availableActions: hacia abajo hay muro, izquierda y arriba fuera de grilla
     auto actions = env.availableActions();
@@ -113,9 +113,9 @@ void testRoughTerrainAndAvailableActions() {
 
 void testPrecedenceAndEndReasons() {
     // 1) Victoria normal
-    Grid<Cell, 1, 2> boardWin;
+    Grid<Cell> boardWin(1, 2);
     boardWin.at({0, 1}) = Exit{};
-    NavigationEnvironment<1, 2> envWin{boardWin, {0, 0}, 5, 5};
+    NavigationEnvironment envWin{boardWin, {0, 0}, 5, 5};
     auto resWin = envWin.step(Action::right);
     assert(resWin.finished);
     assert(resWin.reason == EndReason::goalReached);
@@ -131,23 +131,23 @@ void testPrecedenceAndEndReasons() {
     assert(caught);
 
     // 2) Precedencia: llegar a salida con 0 energía NO es victoria -> noEnergy
-    Grid<Cell, 1, 2> boardZero;
+    Grid<Cell> boardZero(1, 2);
     boardZero.at({0, 1}) = Exit{};
-    NavigationEnvironment<1, 2> envZero{boardZero, {0, 0}, 1, 5};
+    NavigationEnvironment envZero{boardZero, {0, 0}, 1, 5};
     auto resZero = envZero.step(Action::right);
     assert(resZero.finished);
     assert(resZero.reason == EndReason::noEnergy);
 
     // 3) Precedencia: llegar con energía en el último turno SÍ es victoria
-    NavigationEnvironment<1, 2> envLast{boardWin, {0, 0}, 5, 1};
+    NavigationEnvironment envLast{boardWin, {0, 0}, 5, 1};
     auto resLast = envLast.step(Action::right);
     assert(resLast.finished);
     assert(resLast.reason == EndReason::goalReached);
 
     // 4) Término por turnos agotados
-    Grid<Cell, 1, 3> boardTurn;
+    Grid<Cell> boardTurn(1, 3);
     boardTurn.at({0, 2}) = Exit{};
-    NavigationEnvironment<1, 3> envLimit{boardTurn, {0, 0}, 10, 1};
+    NavigationEnvironment envLimit{boardTurn, {0, 0}, 10, 1};
     auto resLimit = envLimit.step(Action::right);
     assert(resLimit.finished);
     assert(resLimit.reason == EndReason::turnLimit);

@@ -21,6 +21,9 @@ add_library(circuit_escape_core STATIC
         src/controllers.cpp
         src/environment.cpp
         src/game_rules.cpp
+        src/scenario.cpp
+        src/disjoint_set.cpp
+        src/maze_generator.cpp
 )
 
 target_include_directories(circuit_escape_core PUBLIC
@@ -74,3 +77,7 @@ add_test(NAME interactions_test COMMAND interactions_test)
 add_executable(controllers_test tests/controllers_test.cpp)
 target_link_libraries(controllers_test PRIVATE circuit_escape_ui)
 add_test(NAME controllers_test COMMAND controllers_test)
+
+add_executable(maze_test tests/maze_test.cpp)
+target_link_libraries(maze_test PRIVATE circuit_escape_core)
+add_test(NAME maze_test COMMAND maze_test)

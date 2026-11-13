@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -11,6 +13,7 @@
 #include "circuit_escape/controllers.h"
 #include "circuit_escape/game_application.h"
 #include "circuit_escape/game_rules.h"
+#include "circuit_escape/maze_generator.h"
 #include "circuit_escape/scenario.h"
 
 using namespace circuit_escape;
@@ -29,20 +32,44 @@ Difficulty parseDifficulty(int argc, char* argv[]) {
     return Difficulty::standard;
 }
 
-Scenario<20, 30> loadScenario(int argc, char* argv[]) {
-    // Si se pasa --map <archivo>
+// Valor del argumento que sigue a `flag`, si existe.
+std::optional<std::string_view> argValue(int argc, char* argv[], std::string_view flag) {
     for (int i = 1; i + 1 < argc; ++i) {
-        if (std::string_view{argv[i]} == "--map") {
-            std::ifstream file(argv[i + 1]);
-            if (file.is_open()) return scenarioFromStream<20, 30>(file);
+        if (std::string_view{argv[i]} == flag) return std::string_view{argv[i + 1]};
+    }
+    return std::nullopt;
+}
+
+// "21x31" -> {21, 31}
+std::pair<std::size_t, std::size_t> parseSize(std::string_view text) {
+    const auto x = text.find_first_of("xX");
+    if (x == std::string_view::npos) {
+        throw std::invalid_argument("--generate espera FILASxCOLUMNAS, por ejemplo 21x31");
+    }
+    return {std::stoul(std::string{text.substr(0, x)}), std::stoul(std::string{text.substr(x + 1)})};
+}
+
+Scenario loadScenario(int argc, char* argv[]) {
+    // --generate FILASxCOLUMNAS [--seed N]: laberinto nuevo con Kruskal
+    if (const auto size = argValue(argc, argv, "--generate")) {
+        const auto [rows, columns] = parseSize(*size);
+        std::uint32_t seed = 42;
+        if (const auto s = argValue(argc, argv, "--seed")) {
+            seed = static_cast<std::uint32_t>(std::stoul(std::string{*s}));
         }
+        return generateMaze(rows, columns, seed);
+    }
+
+    // --map <archivo>: el tamaño se deduce del archivo
+    if (const auto path = argValue(argc, argv, "--map")) {
+        return loadScenarioFile(std::string{*path});
     }
 
     // Por defecto intenta abrir scenario_01.txt
-    std::ifstream def1("assets/maps/scenario_01.txt");
-    if (def1.is_open()) return scenarioFromStream<20, 30>(def1);
-    std::ifstream def2("../assets/maps/scenario_01.txt");
-    if (def2.is_open()) return scenarioFromStream<20, 30>(def2);
+    for (const char* path : {"assets/maps/scenario_01.txt", "../assets/maps/scenario_01.txt"}) {
+        std::ifstream file(path);
+        if (file.is_open()) return scenarioFromStream(file);
+    }
 
     // Mapa base integrado si no encuentra archivo
     const std::array<std::string_view, 20> map{
@@ -67,10 +94,10 @@ Scenario<20, 30> loadScenario(int argc, char* argv[]) {
         "#.........................S..#",
         "##############################"
     };
-    return scenarioFromLines<20, 30>(map);
+    return scenarioFromLines(map);
 }
 
-void runSimulation(NavigationEnvironment<20, 30>& env, int argc, char* argv[]) {
+void runSimulation(NavigationEnvironment& env, int argc, char* argv[]) {
     std::unique_ptr<IController> controller;
     bool isRandom = false;
     std::uint32_t seed = 42;
@@ -126,7 +153,15 @@ int main(int argc, char* argv[]) {
     try {
         const auto rules = rulesFor(parseDifficulty(argc, argv));
         auto scenario = loadScenario(argc, argv);
-        NavigationEnvironment<20, 30> env{std::move(scenario.grid), scenario.start, rules};
+
+        // --save <archivo>: guarda el mapa cargado/generado en .txt
+        if (const auto path = argValue(argc, argv, "--save")) {
+            saveScenarioFile(std::string{*path}, scenario);
+            std::cout << "Mapa " << scenario.grid.rows() << 'x' << scenario.grid.columns()
+                      << " guardado en " << *path << '\n';
+        }
+
+        NavigationEnvironment env{std::move(scenario.grid), scenario.start, rules};
 
         // Si se pide simulación automática
         for (int i = 1; i < argc; ++i) {

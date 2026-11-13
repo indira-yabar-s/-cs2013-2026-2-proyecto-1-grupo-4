@@ -21,11 +21,11 @@ bool hasEvent(const std::vector<NavigationEvent>& events) {
 }
 
 void testResourceCollection() {
-    Grid<Cell, 1, 3> board;
+    Grid<Cell> board(1, 3);
     board.at({0, 1}) = ResourceCell<int>{10, false};
     board.at({0, 2}) = Exit{};
 
-    NavigationEnvironment<1, 3> env{board, {0, 0}, 20, 10};
+    NavigationEnvironment env{board, {0, 0}, 20, 10};
 
     // Primera visita: recoge el recurso
     auto res1 = env.step(Action::right);
@@ -45,17 +45,17 @@ void testResourceCollection() {
 
 void testBatteryRechargeAndRecovery() {
     // 1) Batería recarga sin superar el máximo
-    Grid<Cell, 1, 3> board;
+    Grid<Cell> board(1, 3);
     board.at({0, 1}) = Battery{3, false};
     board.at({0, 2}) = Exit{};
 
-    NavigationEnvironment<1, 3> env{board, {0, 0}, 10, 20};
+    NavigationEnvironment env{board, {0, 0}, 10, 20};
     auto res = env.step(Action::right);
     assert(res.observation.energy == 10);
 
     // 2) Recuperación tras costo de entrada:
     // Drenamos energía a 1 con wait
-    NavigationEnvironment<1, 3> envRescue{board, {0, 0}, 10, 30};
+    NavigationEnvironment envRescue{board, {0, 0}, 10, 30};
     for (int i = 0; i < 9; ++i) {
         (void)envRescue.step(Action::wait); // 10 -> 9 -> ... -> 1
     }
@@ -73,11 +73,11 @@ void testBatteryRechargeAndRecovery() {
 }
 
 void testTrapRepeatedTrigger() {
-    Grid<Cell, 1, 3> board;
+    Grid<Cell> board(1, 3);
     board.at({0, 1}) = Trap{2, 1};
     board.at({0, 2}) = Exit{};
 
-    NavigationEnvironment<1, 3> env{board, {0, 0}, 20, 10};
+    NavigationEnvironment env{board, {0, 0}, 20, 10};
 
     // Primera entrada: resta 1 (costo) + 2 (trampa) = 17 energia, y -1 puntaje
     auto step1 = env.step(Action::right);
@@ -127,13 +127,13 @@ void testScenarioLoadingFromFiles() {
     std::ifstream file1("assets/maps/scenario_01.txt");
     if (!file1.is_open()) file1.open("../assets/maps/scenario_01.txt");
     assert(file1.is_open());
-    auto sc1 = scenarioFromStream<20, 30>(file1);
+    auto sc1 = scenarioFromStream(file1);
     assert((sc1.start == Position{1, 1}));
 
     std::ifstream file2("assets/maps/scenario_02.txt");
     if (!file2.is_open()) file2.open("../assets/maps/scenario_02.txt");
     assert(file2.is_open());
-    auto sc2 = scenarioFromStream<20, 30>(file2);
+    auto sc2 = scenarioFromStream(file2);
     assert((sc2.start == Position{1, 1}));
 }
 

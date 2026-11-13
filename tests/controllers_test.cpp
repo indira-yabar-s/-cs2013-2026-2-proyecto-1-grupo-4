@@ -51,12 +51,12 @@ void testPolymorphicControllerWrapper() {
 
 void testFullSimulationReproducibility() {
     auto makeGame = []() {
-        Grid<Cell, 4, 4> board;
+        Grid<Cell> board(4, 4);
         board.at({0, 1}) = Wall{};
         board.at({1, 2}) = RoughTerrain{2};
         board.at({2, 1}) = Battery{3, false};
         board.at({3, 3}) = Exit{};
-        return NavigationEnvironment<4, 4>{board, {0, 0}, 20, 30};
+        return NavigationEnvironment{board, {0, 0}, 20, 30};
     };
 
     auto game1 = makeGame();

@@ -9,7 +9,7 @@
 namespace circuit_escape {
 
 GameApplication::GameApplication(
-    NavigationEnvironment<20, 30>& environment,
+    NavigationEnvironment& environment,
     ConsoleUI& ui
 )
     : environment_(environment),

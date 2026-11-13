@@ -116,7 +116,7 @@ std::optional<UiCommand> ConsoleUI::translate(
 }
 
 ftxui::Element ConsoleUI::render(
-    const NavigationEnvironment<20, 30>& environment,
+    const NavigationEnvironment& environment,
     std::span<const NavigationEvent> recentEvents,
     std::string_view message
 ) const {
@@ -131,12 +131,12 @@ ftxui::Element ConsoleUI::render(
     Elements horizontalLabels;
 
     horizontalLabels.reserve(
-        Grid<Cell, 20, 30>::columns()
+        grid.columns()
     );
 
     for (
         std::size_t column = 0;
-        column < Grid<Cell, 20, 30>::columns();
+        column < grid.columns();
         ++column
     ) {
         horizontalLabels.push_back(
@@ -147,7 +147,7 @@ ftxui::Element ConsoleUI::render(
     Elements boardRows;
 
     boardRows.reserve(
-        Grid<Cell, 20, 30>::rows() + 1
+        grid.rows() + 1
     );
 
     boardRows.push_back(
@@ -159,13 +159,13 @@ ftxui::Element ConsoleUI::render(
 
     for (
         std::size_t row = 0;
-        row < Grid<Cell, 20, 30>::rows();
+        row < grid.rows();
         ++row
     ) {
         Elements renderedRow;
 
         renderedRow.reserve(
-            Grid<Cell, 20, 30>::columns() + 1
+            grid.columns() + 1
         );
 
         renderedRow.push_back(
@@ -174,7 +174,7 @@ ftxui::Element ConsoleUI::render(
 
         for (
             std::size_t column = 0;
-            column < Grid<Cell, 20, 30>::columns();
+            column < grid.columns();
             ++column
         ) {
             const Position position{
@@ -351,7 +351,7 @@ std::string ConsoleUI::glyphFor(
 }
 
 std::size_t ConsoleUI::totalResources(
-    const Grid<Cell, 20, 30>& grid
+    const Grid<Cell>& grid
 ) const {
     return countCellsOf<
         ResourceCell<int>
@@ -444,7 +444,7 @@ std::string ConsoleUI::eventsText(
 }
 
 std::string ConsoleUI::finishText(
-    const NavigationEnvironment<20, 30>& environment
+    const NavigationEnvironment& environment
 ) const {
     if (!environment.isFinished()) {
         return {};

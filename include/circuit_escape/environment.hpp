@@ -64,10 +64,11 @@ struct StepResult {
     EndReason reason{EndReason::none};
 };
 
-template <std::size_t Rows, std::size_t Columns>
+// El entorno ya no depende del tamaño en compilación: trabaja con cualquier
+// Grid<Cell> (tablero de tamaño variable), por ejemplo uno generado con Kruskal.
 class NavigationEnvironment {
 public:
-    using grid_type = Grid<Cell, Rows, Columns>;
+    using grid_type = Grid<Cell>;
 
     NavigationEnvironment(grid_type initialGrid,
                           Position start,
