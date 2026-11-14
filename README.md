@@ -33,11 +33,12 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Las 4 suites prueban:
+Las 5 suites prueban:
 * `grid_test`: Acceso válido/inválido a la cuadrícula, iteradores y algoritmos genéricos con distintos contenedores.
 * `environment_test`: Movimiento libre, choques con muros, costos de energía y precedencia de victoria/derrota.
 * `interactions_test`: Recurso único, batería recargable, trampas reiterativas y perfiles de dificultad.
 * `controllers_test`: Controlador aleatorio con semilla fija, controlador heurístico, simulación reproducible y renderizado de consola.
+* `maze_test`: Disjoint Set, grafo, Kruskal, laberintos generados (conexos, reproducibles por semilla) y guardado/carga de mapas `.txt`.
 
 ---
 
@@ -50,8 +51,21 @@ Las 4 suites prueban:
 # Opciones adicionales:
 ./build/Proyecto1PG3.exe --ascii                      # Modo texto ASCII sin emojis
 ./build/Proyecto1PG3.exe --difficulty hard            # Dificultad: easy, standard, hard
-./build/Proyecto1PG3.exe --map assets/maps/scenario_02.txt # Cargar mapa alternativo
+./build/Proyecto1PG3.exe --map assets/maps/scenario_02.txt # Cargar mapa alternativo (cualquier tamaño)
 ```
+
+### Laberintos generados (Grafo + Disjoint Set + Kruskal)
+```powershell
+# Generar un laberinto de 21x31 con semilla 7 y jugarlo
+./build/Proyecto1PG3.exe --generate 21x31 --seed 7 --difficulty easy
+
+# Generar y guardar el mapa en .txt (luego se puede cargar con --map)
+./build/Proyecto1PG3.exe --generate 15x25 --seed 3 --save assets/maps/kruskal_15x25.txt
+
+# Volver a cargar el mapa guardado
+./build/Proyecto1PG3.exe --map assets/maps/kruskal_15x25.txt
+```
+El tablero es de tamaño variable: el tamaño se deduce del archivo `.txt` (una línea por fila, todas del mismo largo).
 
 ### Modo Simulación Automática (Headless)
 Permite correr una simulación por consola con traza paso a paso:
