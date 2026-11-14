@@ -116,7 +116,8 @@ add_executable(route_evaluation_test tests/map_generation/route_evaluation_test.
 target_link_libraries(route_evaluation_test PRIVATE circuit_escape_core)
 add_test(NAME route_evaluation_test COMMAND route_evaluation_test)
 
-add_executable(batch_runner_test tests/concurrency/batch_runner_test.cpp)
+add_executable(batch_runner_test tests/concurrency/batch_runner_test.cpp
+        include/circuit_escape/game_level.h)
 target_link_libraries(batch_runner_test PRIVATE circuit_escape_core)
 add_test(NAME batch_runner_test COMMAND batch_runner_test)
 
