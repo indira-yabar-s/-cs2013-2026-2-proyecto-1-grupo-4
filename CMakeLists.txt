@@ -15,6 +15,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(ftxui)
 
+# Hilos (std::jthread) para la preparacion concurrente de mapas
+find_package(Threads REQUIRED)
+
 # Núcleo del motor (sin dependencia de FTXUI, totalmente portable)
 add_library(circuit_escape_core STATIC
         src/position.cpp
@@ -24,10 +27,18 @@ add_library(circuit_escape_core STATIC
         src/scenario.cpp
         src/disjoint_set.cpp
         src/maze_generator.cpp
+        src/map_generation/map_validator.cpp
+        src/map_generation/map_selector.cpp
+        src/map_generation/map_batch_runner.cpp
+        src/map_generation/real_map_tasks.cpp
 )
 
 target_include_directories(circuit_escape_core PUBLIC
         include
+)
+
+target_link_libraries(circuit_escape_core PUBLIC
+        Threads::Threads
 )
 
 # Capa de presentación (interfaz de consola con FTXUI)
@@ -56,6 +67,15 @@ endif()
 target_link_libraries(Proyecto1PG3 PRIVATE
         circuit_escape_ui
 )
+
+# Generador de mapas (preparacion concurrente)
+add_executable(map_generator
+        app/map_generator_main.cpp
+)
+if (MINGW)
+    target_link_options(map_generator PRIVATE -static)
+endif()
+target_link_libraries(map_generator PRIVATE circuit_escape_core)
 
 # -----------------------------------------------------------------------------
 # Pruebas automáticas (CTest)
@@ -86,3 +106,20 @@ add_test(NAME maze_test COMMAND maze_test)
 add_executable(busquedas_test tests/busquedas_test.cpp)
 target_link_libraries(busquedas_test PRIVATE circuit_escape_core)
 add_test(NAME busquedas_test COMMAND busquedas_test)
+
+# Proyecto 2 - Concurrencia, validacion y seleccion de niveles
+add_executable(map_selector_test tests/map_generation/map_selector_test.cpp)
+target_link_libraries(map_selector_test PRIVATE circuit_escape_core)
+add_test(NAME map_selector_test COMMAND map_selector_test)
+
+add_executable(route_evaluation_test tests/map_generation/route_evaluation_test.cpp)
+target_link_libraries(route_evaluation_test PRIVATE circuit_escape_core)
+add_test(NAME route_evaluation_test COMMAND route_evaluation_test)
+
+add_executable(batch_runner_test tests/concurrency/batch_runner_test.cpp)
+target_link_libraries(batch_runner_test PRIVATE circuit_escape_core)
+add_test(NAME batch_runner_test COMMAND batch_runner_test)
+
+add_executable(real_batch_test tests/concurrency/real_batch_test.cpp)
+target_link_libraries(real_batch_test PRIVATE circuit_escape_core)
+add_test(NAME real_batch_test COMMAND real_batch_test)
