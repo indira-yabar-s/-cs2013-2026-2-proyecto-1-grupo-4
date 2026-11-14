@@ -9,17 +9,17 @@
 #include <string>
 #include <vector>
 
+#include "circuit_escape/cells.h"
+#include "circuit_escape/grid.h"
 #include "circuit_escape/position.h"
 
 namespace circuit_escape {
 
 // Mapa construido por un trabajador en la fase 1.
-// Por ahora el tablero se guarda como filas de texto ('#', '.', 'A', ...)
-// para no depender del Grid de tamaño variable. Se ajusta cuando el bloque 1 lo termine.
 struct MapCandidate {
     int id{};                       // 1, 2, 3... se asigna antes de generar; sirve para desempatar
     std::uint32_t seed{};           // semilla usada para construir este mapa
-    std::vector<std::string> rows;  // tablero en texto
+    Grid<Cell> grid{1, 1};          // tablero real (tamano variable)
     Position start{};
     Position switch_a{};
     Position switch_b{};
@@ -46,7 +46,7 @@ enum class RouteOrder {
     BThenA   // Inicio -> B -> A -> Salida
 };
 
-enum class EnergyStatus {
+enum class RouteEnergy {
     Enough,         // energía > costo: escapa sin recargas
     NeedsRecharge,  // energía <= costo, pero hay baterías: falta demostrar una victoria
     NotEnough,      // energía <= costo y sin baterías: se rechaza
@@ -57,7 +57,7 @@ enum class EnergyStatus {
 struct ValidationResult {
     int map_id{};
     bool accepted{false};
-    EnergyStatus energy_status{EnergyStatus::Unreachable};
+    RouteEnergy energy_status{RouteEnergy::Unreachable};
     std::optional<RouteOrder> best_order;
     int min_cost{0};                     // costo del recorrido más barato
     std::vector<Position> route;         // casillas del recorrido (lo llena Dijkstra)

@@ -40,7 +40,7 @@ ValidationResult evaluate_routes(int map_id,
     // 1) Si ningún recorrido es posible, el mapa se rechaza.
     if (!route_ab && !route_ba) {
         result.accepted = false;
-        result.energy_status = EnergyStatus::Unreachable;
+        result.energy_status = RouteEnergy::Unreachable;
         result.message = "Objetivo inaccesible. Tramos sin camino:" + missing_segments(costs);
         return result;
     }
@@ -57,26 +57,26 @@ ValidationResult evaluate_routes(int map_id,
     // 3) Comparar con la energía inicial. Llegar con energía 0 no permite ganar.
     if (initial_energy > result.min_cost) {
         result.accepted = true;
-        result.energy_status = EnergyStatus::Enough;
+        result.energy_status = RouteEnergy::Enough;
         result.message = "Alcanza sin recargas.";
     } else if (has_recharges) {
         result.accepted = true;
-        result.energy_status = EnergyStatus::NeedsRecharge;
+        result.energy_status = RouteEnergy::NeedsRecharge;
         result.message = "No alcanza sin recargas: falta demostrar una partida ganadora.";
     } else {
         result.accepted = false;
-        result.energy_status = EnergyStatus::NotEnough;
+        result.energy_status = RouteEnergy::NotEnough;
         result.message = "Energia insuficiente y el mapa no tiene recargas.";
     }
     return result;
 }
 
-std::string to_text(EnergyStatus status) {
+std::string to_text(RouteEnergy status) {
     switch (status) {
-        case EnergyStatus::Enough:        return "alcanza";
-        case EnergyStatus::NeedsRecharge: return "requiere recargas";
-        case EnergyStatus::NotEnough:     return "insuficiente";
-        case EnergyStatus::Unreachable:   return "inaccesible";
+        case RouteEnergy::Enough:        return "alcanza";
+        case RouteEnergy::NeedsRecharge: return "requiere recargas";
+        case RouteEnergy::NotEnough:     return "insuficiente";
+        case RouteEnergy::Unreachable:   return "inaccesible";
     }
     return "desconocido";
 }

@@ -28,7 +28,7 @@ struct EnergyCase {
     std::string name;
     int energy;
     bool has_recharges;
-    EnergyStatus expected_status;
+    RouteEnergy expected_status;
     bool expected_accepted;
 };
 
@@ -37,11 +37,11 @@ struct EnergyCase {
 int main() {
     // Energia contra un recorrido de costo 10 (ejemplo del enunciado).
     const std::vector<EnergyCase> cases = {
-        {"energia 12: quedan 2", 12, false, EnergyStatus::Enough, true},
-        {"energia 10: llega en cero, no gana", 10, false, EnergyStatus::NotEnough, false},
-        {"energia 9 sin baterias", 9, false, EnergyStatus::NotEnough, false},
-        {"energia 10 con baterias", 10, true, EnergyStatus::NeedsRecharge, true},
-        {"energia 9 con baterias", 9, true, EnergyStatus::NeedsRecharge, true},
+        {"energia 12: quedan 2", 12, false, RouteEnergy::Enough, true},
+        {"energia 10: llega en cero, no gana", 10, false, RouteEnergy::NotEnough, false},
+        {"energia 9 sin baterias", 9, false, RouteEnergy::NotEnough, false},
+        {"energia 10 con baterias", 10, true, RouteEnergy::NeedsRecharge, true},
+        {"energia 9 con baterias", 9, true, RouteEnergy::NeedsRecharge, true},
     };
 
     for (const EnergyCase& test : cases) {
@@ -65,7 +65,7 @@ int main() {
     blocked.start_to_a = std::nullopt;
     blocked.start_to_b = std::nullopt;
     const ValidationResult unreachable = evaluate_routes(3, blocked, 50, true);
-    check(unreachable.energy_status == EnergyStatus::Unreachable, "inaccesible");
+    check(unreachable.energy_status == RouteEnergy::Unreachable, "inaccesible");
     check(!unreachable.accepted, "inaccesible se rechaza");
     check(!unreachable.best_order.has_value(), "inaccesible sin recorrido");
 

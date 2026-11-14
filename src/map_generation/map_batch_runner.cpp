@@ -132,7 +132,7 @@ bool same_results(const BatchReport& first, const BatchReport& second) {
     for (std::size_t i = 0; i < first.maps.size(); ++i) {
         const MapCandidate& a = first.maps[i];
         const MapCandidate& b = second.maps[i];
-        if (a.id != b.id || a.seed != b.seed || a.rows != b.rows) {
+        if (a.id != b.id || a.seed != b.seed || !(a.grid == b.grid)) {
             return false;
         }
     }

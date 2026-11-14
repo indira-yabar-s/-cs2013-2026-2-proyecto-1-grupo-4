@@ -10,6 +10,7 @@
 #include <random>
 #include <thread>
 
+#include "circuit_escape/cells.h"
 #include "circuit_escape/map_generation/map_types.hpp"
 #include "circuit_escape/map_generation/map_validator.hpp"
 
@@ -24,13 +25,14 @@ inline MapCandidate fake_build_map(int id, std::uint32_t seed) {
     MapCandidate map;
     map.id = id;
     map.seed = seed;
-    map.rows = {
-        "#######",
-        "#@.A..#",
-        "#.###.#",
-        "#B.V.S#",
-        "#######",
-    };
+    map.grid = Grid<Cell>(5, 7, Cell{Wall{}});
+    for (std::size_t column = 1; column <= 5; ++column) {
+        map.grid.at({1, column}) = Empty{};
+        map.grid.at({3, column}) = Empty{};
+    }
+    map.grid.at({2, 1}) = Empty{};
+    map.grid.at({2, 5}) = Empty{};
+    map.grid.at({3, 5}) = Exit{};
     map.start = {1, 1};
     map.switch_a = {1, 3};
     map.switch_b = {3, 1};
@@ -58,7 +60,7 @@ inline ValidationResult fake_validate_map(const MapCandidate& map) {
 
     ValidationResult result = evaluate_routes(map.id, costs, kFakeInitialEnergy, map.has_recharges);
     // TEMPORAL: la victoria se comprobará jugando una partida real con el motor.
-    result.winning_game_verified = (result.energy_status == EnergyStatus::Enough);
+    result.winning_game_verified = (result.energy_status == RouteEnergy::Enough);
     return result;
 }
 

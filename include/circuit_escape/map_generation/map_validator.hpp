@@ -25,7 +25,7 @@ ValidationResult evaluate_routes(int map_id,
                                  bool has_recharges);
 
 // Texto para mostrar el diagnóstico en consola.
-std::string to_text(EnergyStatus status);
+std::string to_text(RouteEnergy status);
 std::string to_text(RouteOrder order);
 
 }  // namespace circuit_escape
