@@ -71,3 +71,6 @@ Testing/
 # CLion / IDE
 .idea/
 cmake-build-*/
+
+# Instalador generado
+dist/

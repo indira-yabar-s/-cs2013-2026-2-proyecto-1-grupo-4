@@ -1,4 +1,5 @@
-﻿#include <cassert>
+#undef NDEBUG
+#include <cassert>
 #include <iostream>
 
 #include "circuit_escape/pathfinding/busquedas.hpp"
