@@ -63,6 +63,7 @@ struct ValidationResult {
     std::vector<Position> route;         // casillas del recorrido (lo llena Dijkstra)
     std::string message;                 // diagnóstico o motivo del rechazo
     bool winning_game_verified{false};   // true cuando se comprobó una partida ganadora
+    std::vector<Action> winning_actions; // la partida ganadora (se guarda en el archivo del nivel)
 };
 
 }  // namespace circuit_escape
