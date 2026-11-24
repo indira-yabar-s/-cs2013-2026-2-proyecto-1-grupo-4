@@ -26,6 +26,11 @@ Position wallBetween(Position a, Position b) {
 
 Scenario generateMaze(std::size_t rows, std::size_t columns, std::uint32_t seed,
                       const MazeOptions& options) {
+    return generateMazeReport(rows, columns, seed, options).scenario;
+}
+
+MazeReport generateMazeReport(std::size_t rows, std::size_t columns, std::uint32_t seed,
+                              const MazeOptions& options) {
     const std::size_t roomRows = rows >= 3 ? (rows - 1) / 2 : 0;
     const std::size_t roomCols = columns >= 3 ? (columns - 1) / 2 : 0;
     if (roomRows * roomCols < 2) {
@@ -55,6 +60,9 @@ Scenario generateMaze(std::size_t rows, std::size_t columns, std::uint32_t seed,
     // ---- 2) Kruskal: árbol de expansión mínima ----------------------------
     const auto tree = kruskal(graph);
 
+    MazeReport report{Scenario{Grid<Cell>(1, 1), Position{}, Position{}}, tree.size(), 0, 0};
+    for (const auto& edge : tree) report.treeCost += edge.weight;
+
     // ---- 3) Tallar el laberinto -------------------------------------------
     Grid<Cell> grid(rows, columns, Cell{Wall{}});
     for (std::size_t v = 0; v < graph.vertexCount(); ++v) {
@@ -71,6 +79,7 @@ Scenario generateMaze(std::size_t rows, std::size_t columns, std::uint32_t seed,
             const Position wall = wallBetween(roomOf(edge.from), roomOf(edge.to));
             if (std::holds_alternative<Wall>(grid.at(wall)) && openWall(rng)) {
                 grid.at(wall) = Empty{};
+                ++report.extraOpenings;
             }
         }
     }
@@ -98,7 +107,8 @@ Scenario generateMaze(std::size_t rows, std::size_t columns, std::uint32_t seed,
     place(options.roughTerrain, RoughTerrain{});
     place(options.traps, Trap{});
 
-    return Scenario{std::move(grid), start, exit};
+    report.scenario = Scenario{std::move(grid), start, exit};
+    return report;
 }
 
 }  // namespace circuit_escape
