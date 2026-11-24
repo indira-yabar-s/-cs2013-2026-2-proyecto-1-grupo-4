@@ -40,3 +40,16 @@
 ### Pedro Chavez (Interfaz de Consola)
 * Desarrolló `console_ui.cpp` con renderizado de grilla y alineación a 2 columnas por celda.
 * Implementó la traducción de eventos de teclado (WASD, flechas, E, H, Q) y el ejecutable interactivo.
+
+---
+
+# Proyecto 2 - Circuito de Escape (interruptores, vigilante y concurrencia)
+
+| Integrante | Aportes principales |
+| :--- | :--- |
+| **Oriana Manrique** | `Grid` de tamaño variable (`std::vector`), grafo, `DisjointSet`, Kruskal, generador de laberintos y mapas `.txt` |
+| **Rodolfo Huaroc** | Dijkstra, BFS, `MovementGraph`, `GuardController` y la pantalla de ayuda H (`energy_help.hpp`) |
+| **Pedro Chavez** | Juego completo: interruptores A y B, vigilante y captura en `NavigationEnvironment`, interfaz FTXUI y carga de niveles |
+| **Indira Yabar** | Concurrencia: `run_map_batch` con `std::jthread`, `build_map`/`validate_map` reales, evaluación de recorridos y energía, `select_levels`, `map_generator`, formato de niveles con partida ganadora, pruebas de concurrencia, selección y niveles |
+
+Nota: la base de CMake y de las pruebas viene del Proyecto 1 (Jean Franco, que ya no integra el grupo) y se amplió para el Proyecto 2.

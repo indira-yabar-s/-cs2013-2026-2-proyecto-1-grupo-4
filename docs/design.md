@@ -102,3 +102,23 @@ PolicyController<InvalidPolicy> ctrl{InvalidPolicy{}};
 error: template constraint failure for 'template<NavigationPolicy Policy> class PolicyController'
 note: the required expression '{policy.selectAction(observation, actions)} -> same_as<Action>' is not satisfied
 ```
+
+---
+
+## Proyecto 2: decisiones de diseño
+
+* **Concurrencia solo antes de jugar.** `run_map_batch` ejecuta dos fases paralelas separadas (construir con Kruskal, validar con Dijkstra)
+  y espera a que termine toda la primera antes de empezar la segunda; la selección de niveles es secuencial. La partida es por turnos, sin hilos.
+* **Sin escrituras compartidas.** Cada tarea escribe en su posición exclusiva de un vector reservado antes de lanzar los hilos;
+  el reparto usa un `std::atomic<int>`; los ids y semillas se preparan antes; los errores se guardan por mapa.
+* **Resultados reproducibles.** Orden fijo de vecinos (arriba, abajo, izquierda, derecha), desempates por identificador y por orden A→B;
+  el vigilante se coloca según la semilla. Con 1 o N trabajadores se obtienen los mismos mapas, costos y niveles (`real_batch_test`).
+* **Victoria comprobada con las reglas completas.** `validate_map` simula la partida con el motor (interruptores, vigilante, energía, recargas
+  y turnos) siguiendo los recorridos de Dijkstra (con esperas iniciales y desvíos por baterías si hace falta) y guarda las acciones ganadoras en el nivel.
+* **El motor es el único que modifica la partida.** El vigilante solo propone una acción (`GuardBfsPolicy`, mismo concept `NavigationPolicy`) y la ayuda H
+  solo lee el estado. `reset` restaura inicio, energía, turno, interruptores y vigilante.
+* **Costos de Dijkstra** = energía de entrar en la casilla destino (entrada, terreno elevado, trampa); las baterías no son pesos negativos.
+* **Dimensiones en ejecución.** `Grid<Cell>(filas, columnas)`; el tamaño se valida (7×7 a 200 por lado, 20 000 casillas) y la energía y los turnos del lote
+  crecen con el tamaño para que los mapas grandes sigan siendo ganables.
+* **Arquitectura:** ver `docs/architecture/arquitectura.md`.
+
