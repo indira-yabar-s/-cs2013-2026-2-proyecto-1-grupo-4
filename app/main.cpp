@@ -17,6 +17,8 @@
 #include "circuit_escape/game_application.h"
 #include "circuit_escape/game_level.h"
 #include "circuit_escape/game_rules.h"
+#include "circuit_escape/map_generation/level_preparation.hpp"
+#include "circuit_escape/map_generation/real_map_tasks.hpp"
 #include "circuit_escape/maze_generator.h"
 #include "circuit_escape/pathfinding/busquedas.hpp"
 #include "circuit_escape/scenario.h"
@@ -79,8 +81,8 @@ std::pair<std::size_t, std::size_t> parseSize(
     }
 
     return {
-        std::stoul(std::string{text.substr(0, separator)}),
-        std::stoul(std::string{text.substr(separator + 1)})
+        parse_dimension(std::string{text.substr(0, separator)}, "filas"),
+        parse_dimension(std::string{text.substr(separator + 1)}, "columnas")
     };
 }
 
@@ -181,6 +183,45 @@ std::filesystem::path levelPath(int argc, char* argv[]) {
     );
 }
 
+// --generate FILASxCOLUMNAS [--seed N] [--workers W] [--level easy|medium|hard]:
+// prepara un lote (Kruskal + Dijkstra en paralelo) y devuelve el nivel pedido.
+GameLevel generateLevel(int argc, char* argv[], std::string_view sizeText) {
+    const auto [rows, columns] = parseSize(sizeText);
+    const MapSize size{rows, columns};
+
+    BatchConfig config;
+    config.map_count = 10;
+    config.workers = 4;
+    config.base_seed = 2026;
+
+    if (const auto value = argValue(argc, argv, "--seed")) {
+        config.base_seed = static_cast<std::uint32_t>(std::stoul(std::string{*value}));
+    }
+    if (const auto value = argValue(argc, argv, "--workers")) {
+        config.workers = std::stoi(std::string{*value});
+    }
+
+    const auto level = argValue(argc, argv, "--level").value_or("medium");
+    if (level != "easy" && level != "medium" && level != "hard" && level != "standard") {
+        throw std::invalid_argument("Nivel invalido: usa easy, medium o hard");
+    }
+
+    PreparedLevels prepared = prepare_levels(size, config);
+
+    if (!prepared.selection.ok) {
+        throw std::runtime_error(
+            prepared.selection.message + " (prueba otra --seed)"
+        );
+    }
+
+    std::optional<GameLevel>& chosen =
+        level == "easy" ? prepared.easy
+        : level == "hard" ? prepared.hard
+                          : prepared.medium;
+
+    return std::move(*chosen);
+}
+
 void runSimulation(
     NavigationEnvironment& env, int argc, char* argv[]
 ) {
@@ -275,16 +316,17 @@ int main(int argc, char* argv[]) {
         if (hasFlag(argc, argv, "--help")) {
             std::cout
                 << "Juego: --level easy|medium|hard [--ascii]\n"
-                << "Mapa personalizado: --map archivo.txt\n"
-                << "Juego anterior: --classic "
-                << "[--difficulty easy|standard|hard]\n";
+                << "Mapa guardado: --map archivo.txt\n"
+                << "Mapa nuevo (tamano a eleccion): --generate FILASxCOLUMNAS "
+                << "[--seed N] [--level easy|medium|hard] [--save archivo.txt]\n"
+                << "Juego anterior: --classic [--generate FxC] "
+                << "[--difficulty easy|standard|hard]\n"
+                << "Dentro del juego: WASD/flechas mover, E esperar, "
+                << "H ayuda, Q salir\n";
             return 0;
         }
 
-        if (
-            hasFlag(argc, argv, "--classic") ||
-            hasFlag(argc, argv, "--generate")
-        ) {
+        if (hasFlag(argc, argv, "--classic")) {
             const GameRules rules =
                 rulesFor(parseDifficulty(argc, argv));
 
@@ -312,11 +354,20 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        const GameRules rules =
-            rulesFor(Difficulty::standard);
+        GameLevel level = [&]() -> GameLevel {
+            if (const auto size = argValue(argc, argv, "--generate")) {
+                return generateLevel(argc, argv, *size);
+            }
+            return loadGameLevel(levelPath(argc, argv));
+        }();
 
-        GameLevel level =
-            loadGameLevel(levelPath(argc, argv));
+        // --save carpeta/archivo.txt: guarda el nivel generado (se puede volver a cargar con --map)
+        if (const auto path = argValue(argc, argv, "--save")) {
+            saveGameLevel(std::string{*path}, level);
+            std::cout << "Nivel guardado en " << *path << '\n';
+        }
+
+        const GameRules rules = level.rules;
 
         NavigationEnvironment environment{
             std::move(level.scenario.grid),
@@ -324,29 +375,11 @@ int main(int argc, char* argv[]) {
             rules
         };
 
-        environment.enableMission(
+        enable_guarded_mission(
+            environment,
             level.switch_a,
             level.switch_b,
-            level.guard,
-            [&environment, rules](
-                Position guard,
-                Position player,
-                std::size_t turn
-            ) {
-                const MovementGraph graph(
-                    environment.grid(),
-                    rules
-                );
-
-                const GuardController controller;
-
-                return controller.select_action(
-                    graph,
-                    guard,
-                    player,
-                    turn
-                );
-            }
+            level.guard
         );
 
         play(environment, rules, argc, argv);

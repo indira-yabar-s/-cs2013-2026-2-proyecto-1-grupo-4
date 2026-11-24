@@ -1,40 +1,54 @@
-// map_generator: prepara, valida y elige los mapas por nivel.
-// Fase 1: Kruskal construye los mapas. Fase 2: Dijkstra los valida. Ambas en paralelo (std::jthread).
+// map_generator: prepara, valida y guarda los mapas de los tres niveles.
+//   Fase 1: Kruskal construye las alternativas (en paralelo, std::jthread).
+//   Fase 2: Dijkstra las valida (en paralelo) y se comprueba una partida ganadora.
+//   Despues, en orden: se elige un mapa por nivel (facil, medio, dificil).
 //
 // Uso:
-//   map_generator --maps 10 --workers 4 --seed 2026 [--rows 21 --cols 31] [--save assets/maps]
-//   map_generator --maps 10 --workers 4 --compare     (compara 1 hilo contra N hilos)
+//   map_generator --maps 10 --workers 4 --seed 2026 [--rows 15 --cols 21] [--save assets/maps] [--compare]
 
-#include <exception>
-#include <fstream>
-#include <functional>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <string_view>
 
+#include "circuit_escape/game_level.h"
 #include "circuit_escape/game_rules.h"
-#include "circuit_escape/map_generation/fake_map_tasks.hpp"
-#include "circuit_escape/map_generation/real_map_tasks.hpp"
-#include "circuit_escape/scenario.h"
+#include "circuit_escape/map_generation/level_preparation.hpp"
 #include "circuit_escape/map_generation/map_batch_runner.hpp"
 #include "circuit_escape/map_generation/map_selector.hpp"
 #include "circuit_escape/map_generation/map_validator.hpp"
+#include "circuit_escape/map_generation/real_map_tasks.hpp"
 
 using namespace circuit_escape;
 
 namespace {
 
+void print_help() {
+    std::cout << "map_generator: prepara los mapas de los tres niveles\n"
+              << "  --maps N      alternativas a preparar (0 a 10, por defecto 10)\n"
+              << "  --workers W   hilos de trabajo (al menos 1, por defecto 1)\n"
+              << "  --seed S      semilla base; el mapa i usa S + i (por defecto 2026)\n"
+              << "  --rows F --cols C   tamano del tablero (minimo " << kMinMapSide << "x" << kMinMapSide
+              << ", por defecto 15x21)\n"
+              << "  --save CARPETA      guarda mapa_facil.txt, mapa_medio.txt y mapa_dificil.txt\n"
+              << "  --compare     repite con 1 hilo y compara resultados y tiempos\n";
+}
+
 void print_report(const BatchReport& report) {
     std::cout << "Construccion: " << std::fixed << std::setprecision(1) << report.build_ms << " ms"
               << " | Validacion: " << report.validate_ms << " ms\n\n";
 
-    std::cout << "Mapa | Costo | Energia           | Recorrido\n";
+    std::cout << "Mapa | Costo | Energia           | Victoria | Recorrido\n";
     for (const ValidationResult& result : report.results) {
         std::cout << std::setw(4) << result.map_id << " | "
                   << std::setw(5) << result.min_cost << " | "
-                  << std::left << std::setw(17) << to_text(result.energy_status) << std::right << " | "
-                  << (result.best_order ? to_text(*result.best_order) : "-") << '\n';
+                  << std::left << std::setw(17) << to_text(result.energy_status) << " | "
+                  << std::setw(8) << (result.winning_game_verified ? "si" : "no") << " | "
+                  << std::right << (result.best_order ? to_text(*result.best_order) : "-") << '\n';
+        if (!result.accepted) {
+            std::cout << "       rechazado: " << result.message << '\n';
+        }
     }
     for (const std::string& error : report.errors) {
         std::cout << "ERROR: " << error << '\n';
@@ -52,90 +66,84 @@ void print_selection(const LevelSelection& selection) {
               << "Dificil: mapa " << selection.hard_id << " (costo " << selection.hard_cost << ")\n";
 }
 
-// Guarda un nivel como .txt (formato de scenario.h) y anota A, B y vigilante como comentarios.
-void save_level(const std::string& folder, const std::string& name, const MapCandidate& map) {
-    const std::string path = folder + "/" + name;
-    saveScenarioFile(path, Scenario{map.grid, map.start, map.exit});
-    std::ofstream out(path, std::ios::app);
-    out << "; A=" << toString(map.switch_a) << " B=" << toString(map.switch_b)
-        << " vigilante=" << toString(map.guard) << " semilla=" << map.seed << '\n';
-    std::cout << "Guardado: " << path << '\n';
-}
-
-const MapCandidate* find_map(const BatchReport& report, int id) {
-    for (const MapCandidate& map : report.maps) {
-        if (map.id == id) {
-            return &map;
-        }
-    }
-    return nullptr;
+void save_level(const std::filesystem::path& folder, const std::string& file, const GameLevel& level) {
+    const auto path = folder / file;
+    saveGameLevel(path, level);
+    std::cout << "Guardado: " << path.string() << '\n';
 }
 
 }  // namespace
 
 int main(int argc, char* argv[]) {
     BatchConfig config;
-    bool compare = false;
-    bool use_fake = false;
     MapSize size;
+    bool compare = false;
     std::string save_folder;
-    const GameRules rules = rulesFor(Difficulty::standard);
 
     try {
         for (int i = 1; i < argc; ++i) {
             const std::string_view arg = argv[i];
-            if (arg == "--maps" && i + 1 < argc) {
-                config.map_count = std::stoi(argv[++i]);
-            } else if (arg == "--workers" && i + 1 < argc) {
-                config.workers = std::stoi(argv[++i]);
-            } else if (arg == "--seed" && i + 1 < argc) {
-                config.base_seed = static_cast<std::uint32_t>(std::stoul(argv[++i]));
-            } else if (arg == "--rows" && i + 1 < argc) {
-                size.rows = std::stoul(argv[++i]);
-            } else if (arg == "--cols" && i + 1 < argc) {
-                size.columns = std::stoul(argv[++i]);
-            } else if (arg == "--save" && i + 1 < argc) {
-                save_folder = argv[++i];
-            } else if (arg == "--fake") {
-                use_fake = true;
+            auto value = [&]() -> std::string {
+                if (i + 1 >= argc) {
+                    throw std::invalid_argument("Falta el valor de " + std::string(arg));
+                }
+                return argv[++i];
+            };
+            if (arg == "--help") {
+                print_help();
+                return 0;
+            } else if (arg == "--maps") {
+                config.map_count = std::stoi(value());
+            } else if (arg == "--workers") {
+                config.workers = std::stoi(value());
+            } else if (arg == "--seed") {
+                config.base_seed = static_cast<std::uint32_t>(std::stoul(value()));
+            } else if (arg == "--rows") {
+                size.rows = parse_dimension(value(), "--rows");
+            } else if (arg == "--cols") {
+                size.columns = parse_dimension(value(), "--cols");
+            } else if (arg == "--save") {
+                save_folder = value();
             } else if (arg == "--compare") {
                 compare = true;
             } else {
-                std::cerr << "Opcion desconocida: " << arg << '\n';
-                return 1;
+                throw std::invalid_argument("Opcion desconocida: " + std::string(arg) + " (usa --help)");
             }
         }
 
-        std::cout << "Preparando " << config.map_count << " mapas con "
-                  << config.workers << " trabajador(es), semilla " << config.base_seed << "\n\n";
+        // Se valida antes de empezar: mensaje claro si el tablero no sirve.
+        validate_map_size(size);
+        const GameRules rules = rules_for_size(size);
 
-        BuildFunction build = [size](int id, std::uint32_t seed) { return build_map(id, seed, size); };
-        ValidateFunction validate = [&rules](const MapCandidate& map) { return validate_map(map, rules); };
-        if (use_fake) {
-            build = fake_build_map;
-            validate = fake_validate_map;
+        std::cout << "Preparando " << config.map_count << " mapas de " << size.rows << "x" << size.columns
+                  << " con " << config.workers << " trabajador(es), semilla " << config.base_seed
+                  << ", energia " << rules.initialEnergy << ", limite " << rules.turnLimit << " turnos\n\n";
+
+        const PreparedLevels prepared = prepare_levels(size, config);
+        const BatchReport& report = prepared.report;
+        print_report(report);
+        print_selection(prepared.selection);
+
+        if (!prepared.selection.ok) {
+            return 2;  // no se pueden ofrecer los tres niveles: generar otro lote
         }
 
-        const BatchReport report = run_map_batch(config, build, validate);
-        print_report(report);
-        const LevelSelection selection = select_levels(report.results);
-        print_selection(selection);
-
-        if (selection.ok && !save_folder.empty()) {
-            save_level(save_folder, "mapa_facil.txt", *find_map(report, selection.easy_id));
-            save_level(save_folder, "mapa_medio.txt", *find_map(report, selection.medium_id));
-            save_level(save_folder, "mapa_dificil.txt", *find_map(report, selection.hard_id));
+        if (!save_folder.empty()) {
+            std::filesystem::create_directories(save_folder);
+            save_level(save_folder, "mapa_facil.txt", *prepared.easy);
+            save_level(save_folder, "mapa_medio.txt", *prepared.medium);
+            save_level(save_folder, "mapa_dificil.txt", *prepared.hard);
         }
 
         if (compare) {
             BatchConfig single = config;
             single.workers = 1;
-            const BatchReport single_report = run_map_batch(single, build, validate);
+            const BatchReport single_report = prepare_levels(size, single).report;
             std::cout << "\n--- Comparacion ---\n"
-                      << "1 hilo:  construccion " << single_report.build_ms
-                      << " ms, validacion " << single_report.validate_ms << " ms\n"
-                      << config.workers << " hilos: construccion " << report.build_ms
-                      << " ms, validacion " << report.validate_ms << " ms\n"
+                      << "1 hilo:  construccion " << single_report.build_ms << " ms, validacion "
+                      << single_report.validate_ms << " ms\n"
+                      << config.workers << " hilos: construccion " << report.build_ms << " ms, validacion "
+                      << report.validate_ms << " ms\n"
                       << "Mismos resultados: " << (same_results(report, single_report) ? "SI" : "NO") << '\n';
         }
         return 0;

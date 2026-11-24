@@ -6,6 +6,8 @@
 #include <optional>
 #include <vector>
 
+#include "cells.h"
+#include "grid.h"
 #include "position.h"
 
 namespace circuit_escape {
@@ -27,6 +29,9 @@ namespace circuit_escape {
         std::optional<Position> guard{};
         bool switch_a_activated{false};
         bool switch_b_activated{false};
+
+        // Mapa de solo lectura (apunta al tablero del entorno).
+        const Grid<Cell>* map{nullptr};
     };
 
 }

@@ -286,7 +286,7 @@ void GameApplication::run() {
 
                             const MovementGraph graph(
                                 environment_.grid(),
-                                rulesFor(Difficulty::standard)
+                                environment_.rules()
                             );
 
                             currentHelp = compute_energy_help(

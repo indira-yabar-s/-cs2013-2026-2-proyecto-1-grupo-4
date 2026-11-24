@@ -13,4 +13,6 @@
 #.#.#####.#.#.###.#.#
 #..R......#.#...#..S#
 #####################
-; A=(3,17) B=(8,1) vigilante=(7,7) semilla=2035
+; A=(3,17) B=(8,1) vigilante=(13,17) semilla=2035
+; id=10 nivel=dificil costo_minimo=57 filas=15 columnas=21 energia=108 energia_max=108 turnos=324 entrada=1 rugoso=2 espera=1 invalido=1 recurso=10 recarga=3 trampa_energia=2 trampa_puntos=1
+; solucion=DDRRRRDDLLLLDDDDRRRRRRRRRRUUUUUURRRRDDRRUURRDDDDDDDDDD

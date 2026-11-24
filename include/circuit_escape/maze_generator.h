@@ -35,6 +35,20 @@ struct MazeOptions {
     double extraPassageChance{0.10};
 };
 
+// Resultado detallado: el escenario y como se abrieron los pasillos.
+//   treeOpenings  : muros abiertos por Kruskal (aristas del arbol de expansion minima).
+//   extraOpenings : muros adicionales abiertos despues, que crean caminos alternativos.
+//   treeCost      : suma de los valores aleatorios de las aristas del arbol (no es energia del jugador).
+struct MazeReport {
+    Scenario scenario;
+    std::size_t treeOpenings{0};
+    std::size_t extraOpenings{0};
+    long long treeCost{0};
+};
+
+[[nodiscard]] MazeReport generateMazeReport(std::size_t rows, std::size_t columns,
+                                            std::uint32_t seed, const MazeOptions& options = {});
+
 // Genera un escenario de rows x columns. Inicio en (1,1) y salida en la sala
 // de la esquina opuesta (abajo a la derecha). Lanza std::invalid_argument si el tamaño
 // no permite al menos dos salas (mínimo 3x5 o 5x3) o si extraPassageChance

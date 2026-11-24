@@ -168,6 +168,8 @@ public:
             availableActions()
         };
 
+        observation.map = &grid_;
+
         if (missionEnabled_) {
             observation.switch_a = switchA_;
             observation.switch_b = switchB_;
@@ -219,6 +221,10 @@ public:
 
     [[nodiscard]] const grid_type& grid() const noexcept {
         return grid_;
+    }
+
+    [[nodiscard]] const GameRules& rules() const noexcept {
+        return rules_;
     }
 
     [[nodiscard]] StepResult step(Action action) {
